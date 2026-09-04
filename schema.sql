@@ -16,17 +16,20 @@
 -- Every statement is idempotent (IF NOT EXISTS / INSERT OR IGNORE), so it is
 -- safe to run this file again on an existing database.
 --
--- NOT A TAX INVOICE AND NOT A DEPOSIT CONTRACT. deposit_book is the owner's
--- local extract of what the driver typed on the Stop Record (date, stop,
--- fulls, empties, deposits held, paid). It is not a SAT / CFDI / GST invoice,
--- not a bottle-deposit legal receipt, and not a plant / warehouse stock
--- count. GPS proves the driver was at the door, not that the bottles were
--- filled at the plant.
+-- NOT A TAX INVOICE, NOT A DEPOSIT CONTRACT, AND NOT AN OFFICIAL PLANT LOG.
+-- deposit_book is the owner's local extract of what the driver typed on the
+-- Stop Record (date, stop, fulls, empties, deposits held, paid). It is not a
+-- SAT / CFDI / GST invoice, not a bottle-deposit legal receipt, not a plant /
+-- warehouse stock count, and not a NOM-201 / COFEPRIS bitácora, FSSAI / BIS
+-- file, NAFDAC book, or ESMA / GSO mark. GPS proves the driver was at the
+-- door, not that the bottles were filled at the plant.
+-- ZenSched meters are always USD; local bottle prices stay in this file.
 --
 -- PRIVACY: stops.access_notes (gate, dog, "leave with the neighbor",
--- building code) live ONLY in this file on your computer. They are never
--- sent to ZenSched. SKILL.md forbids the agent from putting them in any
--- ZenSched notes field.
+-- building code) and customer names live ONLY in this file on your computer.
+-- They are never sent to ZenSched. The location label is stop_label + street.
+-- SKILL.md forbids the agent from putting names or access notes in any
+-- ZenSched field.
 --
 -- Shape: customers → stops → visits. Same as the LPG cylinder kit: one
 -- customer can have a house and a shop; cadence and the ZenSched pin live
@@ -45,7 +48,7 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 INSERT OR IGNORE INTO settings (key, value) VALUES ('business_name', 'My Water Route');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('timezone_offset', '-06:00');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('timezone_offset', '-06:00');  -- Guadalajara / CDMX year-round; MX abolished DST 2022 except some northern-border municipios. Gulf +04:00, IN +05:30, NG +01:00 — no DST.
 INSERT OR IGNORE INTO settings (key, value) VALUES ('default_worker_id', NULL);
 INSERT OR IGNORE INTO settings (key, value) VALUES ('default_shift_start', '07:00');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('default_shift_minutes', '10');

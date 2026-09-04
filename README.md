@@ -10,14 +10,16 @@ This is the same shape as the [LPG cylinder-routes kit](https://github.com/zensc
 
 ## What this kit is not — read this first
 
-**What it is:** GPS-verified proof that a driver was at the address, a Stop Record (bottles delivered, empties collected, deposits held, paid cash / account / unpaid), a local deposit book, and invoices built from Account visits.
+**What it is:** GPS-verified proof that a driver was at the address, a Stop Record (bottles delivered, empties collected, deposits held, paid cash / account / unpaid), a local deposit book, and invoices built from Account visits. ZenSched meters are **always USD**.
 
 **What it is not:**
 
 - **Not a tax invoice.** `invoices` is a plain-text bill you paste into WhatsApp. It is not a SAT CFDI, not a GST e-invoice, not a fiscal receipt. Your accountant still files whatever your country requires.
 - **Not a bottle-deposit contract.** `deposit_book` is *your* copy of the count the driver typed (how many jugs that stop currently holds). It is not a legal deposit receipt and not proof the customer agreed to a deposit.
+- **Not a NOM-201 / COFEPRIS / FSSAI / NAFDAC / ESMA plant or licence log.** The Stop Record can collect fulls, empties, cash, and deposits. Official plant bitácora, lab tests, and inspector access stay in your binder or AquaOS / PaniHisab. Do not tell a COFEPRIS / FSSAI / NAFDAC inspector "it's in ZenSched."
 - **Not plant / warehouse inventory.** This kit does not know how many fulls are on the truck or at the plant. GPS proves the driver was at the door, not that the bottles were filled.
 - **Not a signed proof of delivery.** The Stop Record has no signature field. On ZenSched a signature field replaces the Submit button, so adding one would make every stop look like the customer (or the driver) had signed a receipt. Submitting the form is just submitting the form.
+- **Not billed in MXN / INR / NGN / AED.** Local bottle prices stay in your currency in SQLite. ZenSched's meter (GPS, form reads, geocode, invites) is always US dollars.
 
 If any of those is a deal-breaker, this kit is not for you. If you want route cadence, door-GPS, and a local extract of fulls / empties / deposits, read on.
 
@@ -46,7 +48,7 @@ If any of those is a deal-breaker, this kit is not for you. If you want route ca
 
 ### Privacy note
 
-Gate codes, building codes, "leave with the neighbor", and dogs are stored only in `stops.access_notes` in the local database. `SKILL.md` forbids the AI from putting them into any ZenSched field. Give them to your driver yourself, by whatever channel you trust (often WhatsApp). ZenSched only ever sees the street address and the GPS pin.
+Gate codes, building codes, "leave with the neighbor", dogs, and **customer names** are stored only in the local database. `SKILL.md` forbids the AI from putting them into any ZenSched field. Give access notes to your driver yourself, by whatever channel you trust (often WhatsApp). The ZenSched location label is **stop code + street** (e.g. `Casa - Av. México 1234`), never the customer name. ZenSched only ever sees that label, the street address, and the GPS pin.
 
 ## How it works day to day
 
@@ -57,7 +59,7 @@ Your AI assistant has two sets of tools:
 
 When you say "schedule today," the AI reads who is due from the local database (`next_service_date` in the next 7 days), creates one shift per stop on ZenSched, and tells you what it did. Your driver sees the stops in the app, checks in at the door (GPS-verified), leaves fulls, pulls empties, fills in the Stop Record, and checks out. Later you say "record today's visits" and the AI pulls the completed shifts and records, saves the counts locally, advances each stop's next date (daily +1 day, weekly +7, on-demand clears it), updates the deposit book, and flags anything marked Unpaid. "Who holds deposits" is a local query. You never run SQL yourself. `SKILL.md` in this repo is the instruction sheet that teaches the AI how to do all of this; you paste it into your AI tool once.
 
-A typical stop costs about **$0.25** on ZenSched: GPS in $0.10 + GPS out $0.10 + reading a Stop Record **without photos** $0.05. Geocoding a new stop is $0.03 once. The AI states the cost before it spends.
+A typical stop costs about **$0.25 USD** on ZenSched: GPS in $0.10 + GPS out $0.10 + reading a Stop Record **without photos** $0.05. Geocoding a new stop is $0.03 once. Meters are always US dollars. The AI states the USD cost before it spends.
 
 ## Setup
 
@@ -140,9 +142,9 @@ It writes those to the `settings` table, creates the Stop Record form on ZenSche
 
 ### 6. Funding (only when asked)
 
-The first 200 ZenSched tool calls per day are free. Some things are metered: creating a location (geocoding, $0.03), inviting a driver ($0.25), each GPS-verified check-in or check-out ($0.10), and reading a Stop Record ($0.05; this form has no photos). When a metered call happens without funds, the AI will get a `payment_required` response and tell you how to add the $5 activation deposit, which is credited to your balance. You will not be charged without seeing this first.
+The first 200 ZenSched tool calls per day are free. Some things are metered **in USD**: creating a location (geocoding, $0.03), inviting a driver ($0.25), each GPS-verified check-in or check-out ($0.10), and reading a Stop Record ($0.05; this form has no photos). When a metered call happens without funds, the AI will get a `payment_required` response and tell you how to add the $5 activation deposit (USD), which is credited to your balance. You will not be charged without seeing this first.
 
-A typical stop is about $0.25 (in + out + Stop Record). A driver doing 40 stops a day is about $10 in meters that day, plus $0.03 the first time you add each address. The AI states the cost before it spends.
+A typical stop is about $0.25 USD (in + out + Stop Record). A driver doing 40 stops a day is about $10 USD in meters that day, plus $0.03 the first time you add each address. The AI states the USD cost before it spends. Local bottle prices stay in your currency.
 
 ## Using it
 
@@ -182,7 +184,7 @@ When you invite a driver, they get an email, install the app, and can immediatel
 | `SQLITE_PATH` points nowhere / "unable to open database" | Folder from step 1 does not exist | Create the folder; the file is created automatically but the folder is not |
 | ZenSched tools return an auth error | Key still says `zsc_your_key_here`, or was pasted with a space | Re-paste the key, restart |
 | `payment_required` | Metered call with no balance | Follow the instructions in the response; $5 deposit |
-| AI creates shifts at the wrong hour | Timezone not set | "Set my timezone offset to -06:00 in settings" (use your own offset) |
+| AI creates shifts at the wrong hour | Timezone not set, or the AI flipped the offset for "DST" | "Set my timezone offset to -06:00 in settings" (use your own offset). MX except some northern-border towns, plus Gulf / IN / NG, have **no DST** — do not change `-06:00` to `-05:00` in summer |
 | Shift creation fails for dates a couple of months out | The stop's 60-day ZenSched event has expired | Say "renew the events"; the AI runs the roll-over in `SKILL.md` and retries |
 | Driver's check-in not GPS-verified at a house | Geocoded pin is at the mailbox, driver parked far away, or a large lot | Ask the AI to widen `checkin_radius_m` with `policy_update` (not on the location), or run `location_update` / `location_refine` ($0.10) |
 | Driver does not see the Stop Record | Form not assigned to that stop's event | "Attach the Stop Record to Carmen's event" (`form_assign`) |
@@ -190,7 +192,7 @@ When you invite a driver, they get an email, install the app, and can immediatel
 | Daily customer only got one shift this week | Working as intended | `stops_due` emits the *next* date only. Say "pre-build El Sol Tue–Sat" |
 | AI asks you to run SQL yourself | It does not have `SKILL.md` loaded | Re-paste `SKILL.md` as project instructions |
 | AI refuses to put a gate code in ZenSched | Working as intended | Give it to the driver directly |
-| AI offers a SAT invoice or a signed POD | It shouldn't | This kit does not produce those; use your accountant / your own receipt |
+| AI offers a SAT invoice, a signed POD, or a NOM-201 / FSSAI / NAFDAC plant log | It shouldn't | This kit does not produce those; official filing stays in your binder or AquaOS / PaniHisab |
 
 If something is confusing or broken in ZenSched itself, ask the AI to call `feedback_submit` with a description. It is free, needs no account, and a human reads every submission.
 
@@ -201,7 +203,7 @@ If something is confusing or broken in ZenSched itself, ask the AI to call `feed
 **Data model decisions.**
 
 - **customers → stops → visits**, same shape as the LPG kit. One customer can have a house (weekly) and a shop (daily). Cadence and the ZenSched pin live on the **stop**.
-- One ZenSched **location** per stop, permanent, stored on `stops.zensched_location_id` as an integer. Created with `location_create(name, street_address=..., checkin_radius_m=75, idempotency_key=...)`. `checkin_radius_m` on `location_create` is informational; the enforced radius is `policy_update(0, '{"checkin_radius_m": N}')`, and with geofencing on the platform raises values under 100 m to 300 ft.
+- One ZenSched **location** per stop, permanent, stored on `stops.zensched_location_id` as an integer. Created with `location_create(name="<stop_label> - <street>", street_address=..., checkin_radius_m=75, idempotency_key=...)` — the label is stop code + street, never the customer name. `checkin_radius_m` on `location_create` is informational; the enforced radius is `policy_update(0, '{"checkin_radius_m": N}')`, and with geofencing on the platform raises values under 100 m to 300 ft.
 - **Events are capped at 60 days by ZenSched**, so an event cannot be a permanent job template. Each stop holds its *current* event in `stops.zensched_event_id` and its last covered date in `stops.event_valid_until`. The agent creates a new event (`event_create(location_id, title="Water delivery - <street>", start_date, end_date=start+59 days, idempotency_key="event-stop-{stop_id}-{YYYYMMDD}")`) whenever a shift date is later than `event_valid_until`, calls `form_assign(form_id, event_id=...)` on it, and updates the row. `stops_due` exposes `event_needs_roll` per row and `events_expiring` lists stops due for renewal within 14 days. Shifts already created on the old event remain valid. When recording a completed visit whose `event_id` no longer matches a stop, the agent falls back to `event_get(event_id).location_id` against `stops.zensched_location_id`.
 - **Cadence is next-service-date on the stop.** `stops.service_frequency` is `daily | weekly | biweekly | monthly | on-demand`. `stops_due` is every active stop with `next_service_date <= today+7` joined to an active customer, emitting `start_iso` / `end_iso` (preferred start or `settings.default_shift_start`, duration from the service or `default_shift_minutes`) and the shift `idempotency_key`. A daily stop appears **once** (its next date); after recording, tomorrow appears. Pre-building the rest of a week is extra `shift_create` calls with explicit dates, not extra view rows.
 - **The `advance_service_date_on_visit` trigger** sets `last_service_date` and `next_service_date` on every visit insert: **+1 day** / +7 / +14 / +1 month / NULL. Recording a one-off on a recurring stop also moves the cadence; `SKILL.md` tells the agent to set the date back if the owner says so.
@@ -213,7 +215,7 @@ If something is confusing or broken in ZenSched itself, ask the AI to call `feed
 - `invoices.invoice_number` is auto-assigned by trigger as `{prefix}-{YYYY}-{0001}`.
 - **`deposit_book`** is a view over stops with `bottles_on_deposit > 0`. Liability uses `customers.deposit_per_bottle` or `settings.default_deposit_per_bottle`. It does not transmit anything and is not a legal contract.
 - **`unpaid_stops`** is every visit with `paid = 'Unpaid'`. The agent leads with these.
-- `stops.access_notes` is the column that must never be sent to ZenSched; `SKILL.md` rule 6 enforces it. `stops_due` still *selects* `access_notes` so the agent can tell the owner to pass them to the driver.
+- `stops.access_notes` and customer names must never be sent to ZenSched; `SKILL.md` rule 6 enforces it. The location label is `<stop_label> - <street>`. `stops_due` still *selects* `access_notes` so the agent can tell the owner to pass them to the driver.
 - `PRAGMA foreign_keys = ON` is in `schema.sql` and `SKILL.md` tells the agent to run it per session; SQLite does not persist it.
 
 **Stop Record form.** Created once with `form_create(title, fields_json, idempotency_key="form-stop-record")`; the exact `fields_json` is in `SKILL.md` and `example-workflow.md` (byte-identical) and was validated against ZenSched's `_validate_fields`. Every field carries an explicit `identifier` so submission `data` keys are stable (`bottles_delivered`, `empties_collected`, `deposits_held`, `paid`; section `sec_stop`). Option keys are derived by ZenSched from the labels (lowercase, non-alphanumerics → `_`, truncated at 30 characters); `Cash` / `Account` / `Unpaid` become `cash` / `account` / `unpaid`. **No `signature` field** — the phone keeps a Submit button, and submitting is not a legal attestation. **No `photo` field** — reads bill `form_basic` $0.05, never `form_media`. Attaching is `form_assign(form_id, event_id=...)`.
@@ -222,15 +224,16 @@ If something is confusing or broken in ZenSched itself, ask the AI to call `feed
 
 - location: `loc-stop-{stop_id}`
 - event: `event-stop-{stop_id}-{YYYYMMDD window start}`
-- shift: `shift-stop-{stop_id}-{YYYYMMDD}`
+- shift: `shift-stop-{stop_id}-{YYYYMMDD}` (a same-day extra visit or a driver-swap replacement appends `-2`, then `-3`, … — never reuse a suffix, or the 24-hour replay returns the cancelled shift)
 - worker: `worker-{email}`
 - form: `form-stop-record`; assignment: `assign-stop-record-{event_id}`
+- cancel: `cancel-shift-{shift_id}`
 
 ZenSched caches idempotent responses for 24 hours.
 
-**Timestamps.** `shift_create` takes `start` and `end` in ISO 8601 with an explicit offset. Always use the business's local offset from `settings.timezone_offset` (e.g. `2026-09-07T07:00:00-06:00`), never `Z`. The view builds these strings so the agent does not have to.
+**Timestamps.** `shift_create` takes `start` and `end` in ISO 8601 with an explicit offset. Always use the business's local offset from `settings.timezone_offset` (e.g. `2026-09-07T07:00:00-06:00`), never `Z`. The view builds these strings so the agent does not have to. MX (except some northern-border municipios), Gulf, India, and Nigeria have **no DST** — do not flip `-06:00` to `-05:00` in "summer."
 
-**Metered reads.** `form_submissions` and `form_export` bill $0.05 per submission read (this form has no media); `form_export` is preferred for a week at a time. The kit stores the counts on `visits` on first read so later deposit-book questions are answered from SQLite. `shift_list`, `shift_status`, `event_get`, and `timesheet_export(mode="hours"|"raw")` are free.
+**Metered reads (USD).** `form_submissions` and `form_export` bill $0.05 per submission read (this form has no media); each submission bills once ever, replays free. `form_export` is preferred for a week at a time. The kit stores the counts on `visits` on first read so later deposit-book questions are answered from SQLite. `shift_list`, `shift_status`, `event_get`, and `timesheet_export(mode="hours"|"raw")` are free.
 
 **SQLite MCP server.** `mcp.json.example` uses [`easy-sqlite-mcp`](https://github.com/chenkumi/easy-sqlite-mcp) (Node, `better-sqlite3`, `SQLITE_PATH` env var). Its `sqlite_execute` calls `prepare()`, so it accepts **one statement per call**; `schema.sql` is written so every statement stands alone and is idempotent. Any SQLite MCP server with read and write tools will work; adjust the tool names in `SKILL.md`.
 
