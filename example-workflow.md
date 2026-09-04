@@ -6,7 +6,7 @@ IDs and responses are illustrative. ZenSched IDs are integers.
 
 Shop: **Agua Clara del Valle**, Guadalajara, Jalisco, Mexico (`-06:00`). Two customers (weekly house + daily tienda), one driver, then invoice.
 
-Access notes (knock twice, loading dock) stay in SQLite. They are never sent to ZenSched.
+Access notes (knock twice, loading dock) and customer names stay in SQLite. They are never sent to ZenSched. Location labels are stop code + street. ZenSched meters in the billing blobs are **USD**. Guadalajara is `-06:00` year-round (Mexico abolished DST in 2022 except a few northern-border municipios).
 
 ## Session start (every session)
 
@@ -29,7 +29,7 @@ sqlite_execute: UPDATE settings SET value = 'Agua Clara del Valle' WHERE key = '
 sqlite_execute: UPDATE settings SET value = '-06:00' WHERE key = 'timezone_offset';
 ```
 
-> Saved. I'll schedule everything in Mexico Central time (-06:00). You don't have a Stop Record form yet; it's free to create and every stop will come back with bottles delivered, empties collected, deposits held, and paid (Cash / Account / Unpaid). No signature — this is an internal stop record, not a tax invoice and not a deposit contract. Want me to set it up now?
+> Saved. I'll schedule everything in Mexico Central time (-06:00 year-round; no DST here). You don't have a Stop Record form yet; it's free to create and every stop will come back with bottles delivered, empties collected, deposits held, and paid (Cash / Account / Unpaid). No signature — this is an internal stop record, not a tax invoice, not a deposit contract, and not a NOM-201 / COFEPRIS / FSSAI / NAFDAC plant log. Want me to set it up now?
 
 Owner: *"yes"*
 
@@ -43,7 +43,7 @@ form_create:
 ```json
 [
   {"type": "section", "label": "Stop record", "identifier": "sec_stop",
-   "text": "Fill this in before you leave. Count fulls left and empties taken. This is an internal stop record, not a tax invoice and not a bottle-deposit contract."},
+   "text": "Fill this in before you leave. Count fulls left and empties taken. This is an internal stop record, not a tax invoice, not a bottle-deposit contract, and not a NOM-201 / COFEPRIS / FSSAI / NAFDAC / ESMA plant or licence log."},
   {"type": "number", "label": "Bottles delivered", "identifier": "bottles_delivered", "required": true},
   {"type": "number", "label": "Empties collected", "identifier": "empties_collected", "required": true},
   {"type": "number", "label": "Deposits held", "identifier": "deposits_held", "required": true},
@@ -84,13 +84,13 @@ sqlite_execute:
 
 Agent (first metered call this session, rule 11):
 
-> Creating Carmen's address on ZenSched costs $0.03 for geocoding. If your account isn't funded yet you'll get a prompt for the $5 activation deposit. Go ahead?
+> Creating Carmen's address on ZenSched costs $0.03 USD for geocoding. If your account isn't funded yet you'll get a prompt for the $5 activation deposit. Go ahead?
 
 Owner: *"yes"*
 
 ```
 location_create:
-  name: "Carmen Ruiz - Av. México 1234"
+  name: "Casa - Av. México 1234"
   street_address: "Av. México 1234, Col. Americana, Guadalajara, Jalisco 44160"
   checkin_radius_m: 75
   idempotency_key: "loc-stop-1"
@@ -98,7 +98,7 @@ location_create:
     billing: { meter: "geocode", units: 1, price: 0.03 }
 ```
 
-The knock-twice note is **not** in `notes`. It lives only in `stops.access_notes`. `checkin_radius_m` on the location is informational; the enforced radius is the policy.
+The knock-twice note is **not** in `notes`. Carmen's name is **not** in `name`. Both live only in SQLite. `checkin_radius_m` on the location is informational; the enforced radius is the policy.
 
 ```
 event_create:
@@ -146,7 +146,7 @@ sqlite_execute:
   → lastInsertRowid = 2
 
 location_create:
-  name: "Taquería El Sol - Calle López Cotilla 890"
+  name: "Tienda - Calle López Cotilla 890"
   street_address: "Calle López Cotilla 890, Guadalajara, Jalisco 44100"
   checkin_radius_m: 75
   idempotency_key: "loc-stop-2"
@@ -171,7 +171,7 @@ sqlite_execute:
 
 ## "Invite Diego Morales, diego@example.com, and make him the default."
 
-> Inviting a driver costs $0.25. OK?
+> Inviting a driver costs $0.25 USD. OK?
 
 Owner: *"yes"*
 
@@ -240,7 +240,7 @@ shift_create:
 > - Mon 9/7  8:00–8:10  Carmen Ruiz, Av. México 1234 — weekly
 > - Tue 9/8  7:00–7:10  Taquería El Sol, Calle López Cotilla 890 — daily
 >
-> Diego has been notified in the app and both stops have the Stop Record attached. Each stop is about $0.25 once he punches in and out and you read the record ($0.10 + $0.10 + $0.05). El Sol is daily — only Tuesday (its next date) is on this list. Say the word and I'll pre-build Wed–Sat. Pass him the access notes yourself.
+> Diego has been notified in the app and both stops have the Stop Record attached. Each stop is about $0.25 USD once he punches in and out and you read the record ($0.10 + $0.10 + $0.05). El Sol is daily — only Tuesday (its next date) is on this list. Say the word and I'll pre-build Wed–Sat. Pass him the access notes yourself.
 
 Nothing is written to SQLite here. If the owner asks "schedule this week" again, the identical idempotency keys make ZenSched return the same two shifts instead of creating duplicates.
 
@@ -273,7 +273,7 @@ sqlite_query: SELECT s.stop_id, s.customer_id, c.service_id, c.service_rate
 
 Agent (metered read, rule 11):
 
-> There are 2 Stop Records to pull, no photos, so about $0.10 ($0.05 each). I'll read them once and keep the counts locally. That's the last piece of the ~$0.25/stop meter (punches already billed when Diego checked in and out). OK?
+> There are 2 Stop Records to pull, no photos, so about $0.10 USD ($0.05 each). I'll read them once and keep the counts locally. That's the last piece of the ~$0.25/stop USD meter (punches already billed when Diego checked in and out). OK?
 
 Owner: *"go"*
 
@@ -339,7 +339,7 @@ sqlite_query: SELECT * FROM deposit_book;
 
 El Sol has no `deposit_per_bottle` on the customer, so the view uses `settings.default_deposit_per_bottle` (50).
 
-> Your copy from the Stop Record — not a deposit contract:
+> Your copy from the Stop Record — not a deposit contract and not a NOM-201 / COFEPRIS / FSSAI / NAFDAC plant log:
 >
 > | Customer | Stop | Bottles on deposit | Liability |
 > |---|---|---|---|
@@ -385,6 +385,7 @@ The agent then writes the invoice out as text:
 >
 > Total due: $88.00
 > Visit GPS-verified at the stop.
+> Official NOM-201 / COFEPRIS / FSSAI / NAFDAC / ESMA plant or licence filing stays in your binder — this is not that log.
 > ```
 >
 > Carmen's Monday cash ($50) is already collected — not on an invoice. Say "sent" when El Sol's is out.
@@ -426,7 +427,7 @@ shift_create: event_id 7201, worker_id 601, start "2026-11-07T08:00:00-06:00",
 | Thing | Where | Why |
 |---|---|---|
 | Carmen's contact, $25 weekly, El Sol's $22 daily, prices | SQLite | CRM; ZenSched does not model rates or recurrence |
-| Knock-twice, loading dock | SQLite **only** | Privacy; never sent to ZenSched |
+| Knock-twice, loading dock, customer names | SQLite **only** | Privacy; never sent to ZenSched (location label is stop code + street) |
 | Each stop's GPS location | ZenSched (integer ID in `stops`) | Needed for geofenced check-in |
 | Each stop's current ≤60-day event and its end date | ZenSched (integer ID + `event_valid_until` in `stops`) | Shifts hang off events; renewed by the agent |
 | The Stop Record form | ZenSched (ID in `settings`) | Installed on the driver's phone per shift |

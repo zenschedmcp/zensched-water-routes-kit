@@ -4,7 +4,7 @@ Setup is about 15 minutes, once. After that everything is plain English to your 
 
 You need: Claude Desktop (or Cursor) and [Node.js LTS](https://nodejs.org/) installed. Nothing else.
 
-Before you start, read the "What this kit is not" section of `README.md`. Short version: this is GPS-verified route proof plus a local extract of the Stop Record (fulls, empties, deposits, paid). It is **not** a tax invoice and **not** a bottle-deposit contract.
+Before you start, read the "What this kit is not" section of `README.md`. Short version: this is GPS-verified route proof plus a local extract of the Stop Record (fulls, empties, deposits, paid). It is **not** a tax invoice, **not** a bottle-deposit contract, and **not** a NOM-201 / COFEPRIS / FSSAI / NAFDAC / ESMA plant or licence log. ZenSched meters are **USD**.
 
 ## 1. Make a data folder
 
@@ -61,7 +61,7 @@ Paste `SKILL.md` into the AI as standing instructions (Claude Desktop: a Project
 
 > My business is Agua Clara del Valle in Guadalajara, Central time Mexico. Save that to settings and create the Stop Record form.
 
-The AI saves your settings and calls `form_create` once (free) to build the Stop Record your drivers fill in: bottles delivered, empties collected, deposits held, paid (Cash / Account / Unpaid). No signature. No photos. It stores the form id so every stop gets it.
+The AI saves your settings (`-06:00` year-round — Mexico abolished DST in 2022 except a few northern-border towns) and calls `form_create` once (free) to build the Stop Record your drivers fill in: bottles delivered, empties collected, deposits held, paid (Cash / Account / Unpaid). No signature. No photos. It stores the form id so every stop gets it. Meters it quotes later are USD.
 
 ## 6. Add your first two customers
 
@@ -69,7 +69,7 @@ The AI saves your settings and calls `form_create` once (free) to build the Stop
 
 > Add a daily account for Taquería El Sol, sol@example.com, 33-5555-0190, Calle López Cotilla 890, Guadalajara, Jalisco 44100, starting Tuesday 2026-09-08 at 7, $22/bottle, invoice weekly. Loading dock behind. Label the stop Tienda.
 
-Behind the scenes the AI inserts each customer and stop, calls `location_create` (geocode, $0.03, may trigger the $5 activation deposit the first time), creates a 60-day `event_create` for the stop, attaches the Stop Record with `form_assign`, and saves the IDs. Gate / dock notes go only into the local database. You just see a confirmation.
+Behind the scenes the AI inserts each customer and stop, calls `location_create` with a **stop-code + street** label (never the customer name; geocode $0.03 USD, may trigger the $5 activation deposit the first time), creates a 60-day `event_create` for the stop, attaches the Stop Record with `form_assign`, and saves the IDs. Gate / dock notes and customer names go only into the local database. You just see a confirmation.
 
 ## 7. Invite your driver
 
@@ -81,7 +81,7 @@ Diego gets an email ($0.25), installs the app ([Android](https://play.google.com
 
 > Schedule this week for Diego.
 
-The AI reads `stops_due`, creates one shift per stop on ZenSched, and summarizes by day. Diego gets a push notification for each, with the Stop Record attached. It will confirm each stop is about $0.25 once he punches and you read the record. El Sol is daily — only Tuesday (its next date) is created; say "pre-build El Sol Wed–Sat" if you want the rest of the week now.
+The AI reads `stops_due`, creates one shift per stop on ZenSched, and summarizes by day. Diego gets a push notification for each, with the Stop Record attached. It will confirm each stop is about $0.25 USD once he punches and you read the record. El Sol is daily — only Tuesday (its next date) is created; say "pre-build El Sol Wed–Sat" if you want the rest of the week now.
 
 ## 9. After the work is done
 
